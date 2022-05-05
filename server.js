@@ -2,25 +2,70 @@
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios").default;
+const { Client } = require("pg");
 require("dotenv").config();
 const PORT = 3000;
 const apiKey = process.env.API_KEY;
+const dbUrl = process.env.DBurl;
 const app = express();
-
-// const moviesData = require("./MoviesData/./data.json");
-// const apiKey = API_KEY;
+const client = new Client(dbUrl);
 
 app.use(cors());
+app.use(express.json());
+
+//start fucntion
+async function startServer() {
+  try {
+    const connectDB = await client.connect();
+    const listenNow = await app.listen(PORT, () => {
+      console.log(`Example app listening on PORT ${PORT}`);
+    });
+  } catch (err) {
+    console.log(err);
+  }
+}
+// POST req
+app.post("/addMovie", (req, res) => {
+  const { id, original_title, release_date, poster_path, overview } = req.body;
+  let sql = `INSERT INTO movie(id, original_title, release_date, poster_path, overview) VALUES($1, $2, $3, $4, $5)`;
+  let values = [id, original_title, release_date, poster_path, overview];
+  client
+    .query(sql, values)
+    .then((message) => {
+      console.log(message);
+      return res.status(201).json(message.rows)[0];
+    })
+    .catch((err) => {
+      handleErrors(err, req, res);
+    });
+
+  res.send("check the console");
+});
+
+// GET req
 app.get("/", (req, res) => {
   res.send(
     "gather the json data and use it in a constructer and then use res.json the array"
   );
 });
-
+//------------------------------------------------------------
+app.get("/getMovies", (req, res) => {
+  let sql = `SELECT * FROM movie`;
+  client
+    .query(sql)
+    .then((info) => {
+      console.log(info);
+      return res.json(info.rows);
+    })
+    .catch((err) => {
+      handleErrors(err, req, res);
+    });
+});
+//------------------------------------------------------------
 app.get("/favorite", (req, res) => {
   res.send("Welcome to Favorite Page");
 });
-
+//------------------------------------------------------------
 app.get("/trending", (req, res) => {
   movieUrl = `https://api.themoviedb.org/3/trending/all/week?api_key=${apiKey}&language=en-US`;
   axios
@@ -43,7 +88,7 @@ app.get("/trending", (req, res) => {
       res.send("inside catch");
     });
 });
-
+//------------------------------------------------------------
 app.get("/search", (req, res) => {
   let movieName = req.query.movieName;
 
@@ -67,6 +112,7 @@ app.get("/search", (req, res) => {
       console.log(error);
     });
 });
+//------------------------------------------------------------
 app.get("/new", (req, res) => {
   let url = `https://api.themoviedb.org/3/movie/76341?api_key=${apiKey}&language=de`;
   axios
@@ -78,6 +124,7 @@ app.get("/new", (req, res) => {
       console.log(error);
     });
 });
+//------------------------------------------------------------
 app.get("/popular", (req, res) => {
   let url = ` https://api.themoviedb.org/3/movie/76341?api_key=${apiKey}`;
   axios
@@ -89,17 +136,16 @@ app.get("/popular", (req, res) => {
       console.log(error);
     });
 });
+//------------------------------------------------------------
 app.get("/error", (req, res) => {
   res.status(500).send("<h1>505! Internal Server Error</h1>");
 });
-
+//------------------------------------------------------------
 app.use("*", (req, res) => {
   res.status(404).send("<h1>404! Page not found</h1>");
 });
-
-app.listen(PORT, () => {
-  console.log(`Example app listening on PORT ${PORT}`);
-});
+//------------------------------------------------------------
+startServer();
 
 // Functions
 function Movie(id, title, release_date, poster_path, overview) {
@@ -108,4 +154,7 @@ function Movie(id, title, release_date, poster_path, overview) {
   this.release_date = release_date;
   this.poster_path = poster_path;
   this.overview = overview;
+}
+function handleErrors(error, req, res) {
+  res.status(500).send(error);
 }
