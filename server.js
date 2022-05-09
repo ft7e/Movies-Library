@@ -24,6 +24,50 @@ async function startServer() {
     console.log(err);
   }
 }
+// DELETE req
+
+app.delete("/deleteMovie", (req, res) => {
+  const { movieId } = req.query;
+  let sql = `DELETE FROM movie WHERE id = $1;`;
+  let values = [movieId];
+  client
+    .query(sql, values)
+    .then((result) => {
+      res.send("deleted successfully NOW");
+      res.status(204);
+    })
+    .catch((err) => {
+      handleErrors(err, req, res);
+    });
+});
+//------------------------------------------------------------
+
+// UPDATE req
+
+app.put("/updateMovie/:movieId", (req, res) => {
+  const { movieId } = req.params;
+  const { id, original_title, release_date, poster_path, overview } = req.body;
+  let sql = `UPDATE movie SET id = $1, original_title = $2 , release_date = $3 , poster_path = $4, overview = $5 WHERE id = $6 RETURNING *;`;
+  let values = [
+    id,
+    original_title,
+    release_date,
+    poster_path,
+    overview,
+    movieId,
+  ];
+  client
+    .query(sql, values)
+    .then((result) => {
+      console.log(result.rows);
+      res.send(result.rows);
+    })
+    .catch((err) => {
+      handleErrors(err, req, res);
+    });
+});
+
+//------------------------------------------------------------
 // POST req
 app.post("/addMovie", (req, res) => {
   const { id, original_title, release_date, poster_path, overview } = req.body;
@@ -33,15 +77,13 @@ app.post("/addMovie", (req, res) => {
     .query(sql, values)
     .then((message) => {
       console.log(message);
-      return res.status(201).json(message.rows)[0];
+      return res.status(201).json(message.rows);
     })
     .catch((err) => {
       handleErrors(err, req, res);
     });
-
-  res.send("check the console");
 });
-
+//------------------------------------------------------------
 // GET req
 app.get("/", (req, res) => {
   res.send(
