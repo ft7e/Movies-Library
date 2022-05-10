@@ -92,7 +92,7 @@ app.get("/", (req, res) => {
 });
 //------------------------------------------------------------
 app.get("/getMovies", (req, res) => {
-  let sql = `SELECT * FROM movie`;
+  let sql = `SELECT * FROM movie;`;
   client
     .query(sql)
     .then((info) => {
@@ -103,6 +103,22 @@ app.get("/getMovies", (req, res) => {
       handleErrors(err, req, res);
     });
 });
+//------------------------------------------------------------
+app.get("/getMovieId/:movieId", (req, res) => {
+  const { movieId } = req.params;
+  let sql = `SELECT * FROM movie WHERE id = $1`;
+  let values = [movieId];
+  client
+    .query(sql, values)
+    .then((result) => {
+      console.log(result.rows);
+      return res.json(result.rows);
+    })
+    .catch((err) => {
+      handleErrors(err, req, res);
+    });
+});
+
 //------------------------------------------------------------
 app.get("/favorite", (req, res) => {
   res.send("Welcome to Favorite Page");
